@@ -1,5 +1,5 @@
 PRG            = exp_main
-OBJ            = exp_main.o stagectrl.o sonar.o timersetup.o pwmsetup.o usart.o
+OBJ            = exp_main.o sonar.o usart.o
 #MCU_TARGET     = at90s2313
 #MCU_TARGET     = at90s2333
 #MCU_TARGET     = at90s4414
