@@ -68,7 +68,7 @@ F_CPU = 16000000
 CDEFS = -DF_CPU=$(F_CPU)
 
 # Place -I options here
-CINCS = -I$(ARDUINO)
+CINCS = -I/usr/lib/avr/include #$(ARDUINO)
 #########################################
 
 CC             = avr-gcc
