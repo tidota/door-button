@@ -110,12 +110,14 @@ int main(void)
         // command the sonar to measure //
         measure();
 
+        _delay_ms(500);
+
         // receive data
         if(rx_snr(r_snr) == 0)
             continue; // restart the loop if the return value is 0
     
         // send the result to PC
-        sprintf(t_usb, "%s\n", r_snr);
+        sprintf(t_usb, "%s", r_snr);
         tx_usb(t_usb);
 
         _delay_ms(500);

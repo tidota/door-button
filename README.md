@@ -24,3 +24,10 @@ make
 make upload
 ```
 
+# PC program
+Change the baud rate
+```
+sudo stty -F /dev/ttyUSB0 9600
+```
+
+and start the program
