@@ -108,6 +108,8 @@ int main(void)
         {
             // beep
             cout << "beep" << endl;
+            system("notify-send \"!!! ATTENTION !!!\\nSomeone pressed the door button\"");
+            system("cvlc --play-and-exit alarm.ogg");
         }
         else if (strcmp("email", res) == 0)
         {
