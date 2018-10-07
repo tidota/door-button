@@ -7,13 +7,13 @@
  * The main code to control the microcontroller.
 ============================================================================ */
 
-#include <stdint.h>
-#include <math.h>
+//#include <stdint.h>
+//#include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <avr/io.h>
 #include <util/delay.h>
-#include <avr/interrupt.h>
+//#include <avr/interrupt.h>
 #include <inttypes.h>
 
 #include "usart.h"
@@ -25,11 +25,10 @@
 ============================================================================ */
 #define RNG_DIG 4
 
-void initPORTA();
+void initIO();
 int buttonPressed();
-void flashLED(int);
+void blinkLED(int);
 uint8_t getMeasurement(char *);
-void delay_ms(uint16_t);
 
 /* ============================================================================
  * Function: main
@@ -39,7 +38,7 @@ void delay_ms(uint16_t);
  * settings.
  * In the while loop, it constantly checks the button status. Once the button
  * is pressed, it takes sonar measurements, sends a command to beep to the PC
- * through USB, and flashes the LED ligtht.
+ * through USB, and blinkes the LED ligtht.
  * If the sonar results indicate the person is not present (1000+ mm of range),
  * it sends a command to send an email.
 ============================================================================ */
@@ -50,7 +49,7 @@ int main(void)
 
     initSonar();
 
-    initPORTA();
+    initIO();
 
     while (1)
     {
@@ -59,16 +58,17 @@ int main(void)
             char r_snr[10];
             int range;
 
-            //printf("beep\n");
+            printf("beep\n");
 
             getMeasurement(r_snr);
             sscanf(r_snr, "%d", &range);
+            printf("debug: %d\n",range);
             if (range >= 1000)
             {
-                //printf("email\n");
+                printf("email\n");
             }
 
-            flashLED(500);
+            blinkLED(10000);
         }
         else
         {
@@ -80,16 +80,24 @@ int main(void)
 }
 
 /* ============================================================================
- * Function: initPORTA
+ * Function: initIO
  *
  * Desciption:
- * Initializes port A for the button (input at A4) and LED (output at A0).
+ * Initializes B pins for misc devices.
+ *
+ * B6 (D12): LED lisght output
+ * B5 (D11): button input
+ *
+ * Note: this must run at the end of the initialization phase.
 ============================================================================ */
 
-void initPORTA()
+void initIO()
 {
-    DDRA = 0x0F;
-    PORTA = 0xF0;
+    DDRB |= (1 << PB6);
+    PORTB |= (1 << PB6);
+
+    DDRB &= ~(1 << PB5);
+    PORTB |= (1 << PB5);
 }
 
 /* ============================================================================
@@ -105,30 +113,29 @@ int buttonPressed()
 {
     int pressed = 0;
 
-    if (PINA & 0x10 == 0)
+    if ((PINB & (1 << PB5)) == 0)
         pressed = 1;
 
     return pressed;
 }
 
 /* ============================================================================
- * Function: flashLED
+ * Function: blinkLED
  *
  * Desciption:
- * flashes the LED during the time specified by the parameter in msec.
+ * blinkes the LED during the time specified by the parameter in msec.
 ============================================================================ */
 
-void flashLED(int duration)
+void blinkLED(int duration)
 {
     int elapsed = 0;
     while (elapsed < duration)
     {
-        PORTA |= 0x01;
-        delay_ms(100);
-        PORTA &= 0xFE;
-        delay_ms(100);
-        elapsed += 200;
+        PORTB ^= (1 << PB6);
+        _delay_ms(100);
+        elapsed += 100;
     }
+    PORTB |= (1 << PB6);
 }
 
 /* ============================================================================
@@ -166,20 +173,5 @@ uint8_t getMeasurement(char *buff)
     buff[RNG_DIG] = '\0';
 
     return 1;
-}
-
-/* ============================================================================
- * Function: delay_ms
- *
- * Desciption:
- * It waits for the time given by the parameter.
-============================================================================ */
-
-void delay_ms(uint16_t cnt_ms)
-{
-    while(cnt_ms--)
-    {
-        _delay_ms(1);
-    }
 }
 
