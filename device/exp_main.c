@@ -1,3 +1,12 @@
+/* ============================================================================
+ * File: 
+ * Author: Tetsuya Idota
+ * Created: October 6, 2018
+ *
+ * Desciption:
+ * The main code to control the microcontroller.
+============================================================================ */
+
 #include <stdint.h>
 #include <math.h>
 #include <stdio.h>
@@ -10,120 +19,167 @@
 #include "usart.h"
 #include "sonar.h"
 
-// update: 140410-0815: debugged the communication
-// update: 140413-0926: adjusted for the pc program
+/* ============================================================================
+   # of digits which sonar data contains
+   R<4 digits of range>0x0D
+============================================================================ */
+#define RNG_DIG 4
 
-// variable time to delay
-void delay_ms(uint16_t cnt_ms) {
-    while(cnt_ms--) {
-        _delay_ms(1);
-    }
-}
+void initPORTA();
+int buttonPressed();
+void flashLED(int);
+uint8_t getMeasurement(char *);
+void delay_ms(uint16_t);
 
-// === format of the data from sonar ===
-// R<4 digits of range>
-#define MAX_RX_SNR 6
-uint8_t rx_snr(char *buff)
-{
-    int i = 0, j = 0;
-    while(i < MAX_RX_SNR)
-    {
-        buff[i] = usart1rx();
-        i++;
-    }
-
-    if(buff[0] != 'R' || buff[5] != 0x0D)
-        return 0; //failed
-
-    buff[0] = '0';
-    buff[5] = 0x00;
-
-    // check each character and count the 0's before data
-    i = 0;
-    while(i < MAX_RX_SNR - 1)
-    {
-        if(buff[i] != '0')
-            break;
-        if(buff[i] < '0' || '9' < buff[i])
-            return 0; //failed
-        i++;
-    }
-
-    // shift data to left
-    j = 0;
-    while(i + j < MAX_RX_SNR - 1)
-    {
-        buff[j] = buff[i+j];
-        j++;
-    }
-
-    buff[j] = 0x00;
-
-    return 1; //OK
-}
-
-// === format of the end character in every communciation ===
-// to make sure that the end character is exactly 1 byte,
-// the character is 0x03 (End of Text) instead of the carriage return (\n \r\n and so on)
-// the end of "data" is supposed to be 0
-void tx_usb(const char *data)
-{
-    int i =0;
-    while(data[i] != 0x00)
-    {
-        printf("%c",data[i]);
-        i++;
-    }
-    printf("%c\n",0x03);
-}
-
-// === format of data to PC ===
-// data: <pitch><tab><yaw><tab><4 digits of number>
-// OK: "OK"
-// error: "E-"<message>
-// *OK is to be used to respond for the initialization command "I"
-
-// === conversions of angles for servos ===
-// pitch,yaw => tilting servo (0 to 180)
-#define Tlt(p,y) (((y) <= 180)? (p): (180-(p)))
-// pitch,yaw => panning servo (0 to 180)
-#define Pan(p,y) (((y) <= 180)? (y): ((y) - 180))
-
+/* ============================================================================
+ * Function: main
+ *
+ * Desciption:
+ * It first initializes connections with the sonar and PC, and the pin
+ * settings.
+ * In the while loop, it constantly checks the button status. Once the button
+ * is pressed, it takes sonar measurements, sends a command to beep to the PC
+ * through USB, and flashes the LED ligtht.
+ * If the sonar results indicate the person is not present (1000+ mm of range),
+ * it sends a command to send an email.
+============================================================================ */
 
 int main(void)
 {    
-    // variables for receiving data from sonar
-    char r_snr[30]; // buffer of string
-
-    // variables for communication with PC
-    char t_usb[30]; // string to PC
-
-    // === USB settings (for com. with PC) === //
     init_usart();
 
-    // === sonar settings === //
     initSonar();
 
-    //=== Main Loop ===//
-    while(1)
+    initPORTA();
+
+    while (1)
     {
-        // command the sonar to measure //
-        measure();
+        if (buttonPressed())
+        {
+            char r_snr[10];
+            int range;
 
-        _delay_ms(500);
+            //printf("beep\n");
 
-        // receive data
-        if(rx_snr(r_snr) == 0)
-            continue; // restart the loop if the return value is 0
-    
-        // send the result to PC
-        sprintf(t_usb, "%s", r_snr);
-        tx_usb(t_usb);
+            getMeasurement(r_snr);
+            sscanf(r_snr, "%d", &range);
+            if (range >= 1000)
+            {
+                //printf("email\n");
+            }
 
-        _delay_ms(500);
+            flashLED(500);
+        }
+        else
+        {
+            _delay_ms(100);
+        }
     }
 
     return 1;
-} //main//
+}
 
+/* ============================================================================
+ * Function: initPORTA
+ *
+ * Desciption:
+ * Initializes port A for the button (input at A4) and LED (output at A0).
+============================================================================ */
+
+void initPORTA()
+{
+    DDRA = 0x0F;
+    PORTA = 0xF0;
+}
+
+/* ============================================================================
+ * Function: buttonPressed
+ *
+ * Desciption:
+ * Returns 1 if the button is pressed. Otherwise, 0.
+ *
+ * Note: when it is not pressed, the pin is high. Otherwise, it is low.
+============================================================================ */
+
+int buttonPressed()
+{
+    int pressed = 0;
+
+    if (PINA & 0x10 == 0)
+        pressed = 1;
+
+    return pressed;
+}
+
+/* ============================================================================
+ * Function: flashLED
+ *
+ * Desciption:
+ * flashes the LED during the time specified by the parameter in msec.
+============================================================================ */
+
+void flashLED(int duration)
+{
+    int elapsed = 0;
+    while (elapsed < duration)
+    {
+        PORTA |= 0x01;
+        delay_ms(100);
+        PORTA &= 0xFE;
+        delay_ms(100);
+        elapsed += 200;
+    }
+}
+
+/* ============================================================================
+ * Function: getMeasurement
+ *
+ * Desciption:
+ * takes sonar measurement until it gets reasonable data, and stores the
+ * retults in the character array specified by the parameter.
+============================================================================ */
+
+uint8_t getMeasurement(char *buff)
+{
+    while(1)
+    {
+        int done = 1;
+
+        measure();
+
+        while(usart1rx() != 'R'){}
+
+        int i = 0;
+        while(i < RNG_DIG)
+        {
+            buff[i] = usart1rx();
+            if (buff[i] < '0' || '9' < buff[i])
+                done = 0;
+	    i++;
+        }
+        usart1rx();
+
+        if(done)
+            break;
+    }
+
+    buff[RNG_DIG] = '\0';
+
+    return 1;
+}
+
+/* ============================================================================
+ * Function: delay_ms
+ *
+ * Desciption:
+ * It waits for the time given by the parameter.
+============================================================================ */
+
+void delay_ms(uint16_t cnt_ms)
+{
+    while(cnt_ms--)
+    {
+        _delay_ms(1);
+    }
+}
 
