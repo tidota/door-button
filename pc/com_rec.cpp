@@ -19,6 +19,8 @@
 #include <iomanip>
 
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <termios.h>
@@ -29,25 +31,38 @@
 
 using namespace std;
 
-// === format of data ===
-// data: <pitch><tab><yaw><tab><4 digits of number>
-// OK: "OK"
-// error: "E-"<message>
-// *OK is to be used to respond for the initialization command "I"
-void recv(int port, char *dat){
+int port;
+
+void finish(int sig)
+{
+    // close the connection
+    close(port);
+    cout << "port closed" << endl;
+    exit(0);
+}
+
+void recv(int port, char *dat)
+{
     int i = 0;
-    char buff = 0x03;
+    char buff = '\n';
     char result;
-    do{
+
+    do
+    {
         result = read(port, &buff,1);
-        if(buff == 0x03){
-            dat[i] = 0x00;
-            return;
-        }else if(buff != '\n' && buff != '\r'){
+
+        if(buff == '\n')
+        {
+            dat[i] = '\0';
+            break;
+        }
+        else if(buff != '\r')
+        {
             dat[i] = buff;
             i++;
         }
-    }while(result > 0);
+    }
+    while(result > 0);
 }
 
 // === format of output ===
@@ -55,14 +70,12 @@ void recv(int port, char *dat){
 
 int main(void)
 {
-    // set the path to the port
     string path_port;
     path_port = "/dev/ttyUSB0";
-    cout << "the path: " << path_port << endl;
-    // open the connection
+    cout << "port: " << path_port << endl;
+
     cout << "opening the port" << endl;
-    int port;
-    port = open(path_port.c_str(), O_RDWR | O_NOCTTY);
+    port = open(path_port.c_str(), O_RDONLY | O_NOCTTY);
 
     if(port >= 0)
     {
@@ -73,19 +86,7 @@ int main(void)
         return 1;
     }
 
-/*
-    // change to non canonical mode
-    // http://www.faqs.org/docs/Linux-HOWTO/Serial-Programming-HOWTO.html)
-    // http://linux.die.net/man/3/tcflush
-        struct termios oldtio,newtio;
-        tcgetattr(port,&oldtio); // save current port settings //
-    newtio = oldtio;
-        newtio.c_lflag = 0;      // non canonical mode //
-        //newtio.c_cc[VMIN] = 0;   // blocking read until 5 chars received //
-        tcflush(port, TCIFLUSH);
-        tcsetattr(port,TCSANOW,&newtio);
-*/
-
+    signal(SIGINT, finish);
 
     // recording date // resrouce: http://www.cplusplus.com/reference/ctime/strftime/
     char time_recorded[32];            // time of recording
@@ -95,24 +96,34 @@ int main(void)
     // first interaction with the device
     char res[32]; // response for recv function
 
+    cout << "start" << endl;
+
     // for all specified angles
     while(1)
     {
         // wait for the data
-        recv(port,res);
+        recv(port, res);
 
-        // get the time
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        strftime(time_recorded, 32, "%H:%M:%S",timeinfo);
+        if (strcmp("beep", res) == 0)
+        {
+            // beep
+            cout << "beep" << endl;
+        }
+        else if (strcmp("email", res) == 0)
+        {
+            // get the time
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+            strftime(time_recorded, 32, "%H:%M:%S",timeinfo);
 
-        // output the received data
-        cout << "range: " << time_recorded << "\t" << res << endl;
+            // output the received data
+            cout << "sending email (" << time_recorded << ")" << endl;
+        }
+        else
+        {
+            cout << "[info] " << res << endl;
+        }
     }
 
-    // close the connection
-    close(port);
-    cout << "port closed" << endl;
-    
     return 0;
 }
