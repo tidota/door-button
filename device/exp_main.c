@@ -58,8 +58,6 @@ int main(void)
             char r_snr[10];
             int range;
 
-            printf("beep\n");
-
             getMeasurement(r_snr);
             sscanf(r_snr, "%d", &range);
             printf("debug: %d\n",range);
@@ -67,6 +65,8 @@ int main(void)
             {
                 printf("email\n");
             }
+
+            printf("beep\n");
 
             blinkLED(10000);
         }
