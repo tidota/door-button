@@ -38,5 +38,13 @@ Change the baud rate
 ```
 sudo stty -F /dev/ttyUSB0 9600
 ```
+compile and start the program
 
-and start the program
+## email setting
+When it receives an email command, the program sends an email.
+To send an email, mailutils is required to be install and configures.
+
+[Configure Postfix to Send Mail Using Gmail and Google Apps on Debian or Ubuntu](https://www.linode.com/docs/email/postfix/configure-postfix-to-send-mail-using-gmail-and-google-apps-on-debian-or-ubuntu/).
+
+
+

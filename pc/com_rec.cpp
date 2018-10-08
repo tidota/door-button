@@ -120,6 +120,8 @@ int main(void)
 
             // output the received data
             cout << "sending email (" << time_recorded << ")" << endl;
+            system("echo \"Someone pressed the door button.\" | mail -s \"Door Button Notification\" tidota@hawaii.edu");
+
         }
         else
         {
