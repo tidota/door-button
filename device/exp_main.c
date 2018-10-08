@@ -39,7 +39,7 @@ uint8_t getMeasurement(char *);
  * In the while loop, it constantly checks the button status. Once the button
  * is pressed, it takes sonar measurements, sends a command to beep to the PC
  * through USB, and blinkes the LED ligtht.
- * If the sonar results indicate the person is not present (1000+ mm of range),
+ * If the sonar results indicate the person is not present (500+ mm of range),
  * it sends a command to send an email.
 ============================================================================ */
 
@@ -61,7 +61,7 @@ int main(void)
             getMeasurement(r_snr);
             sscanf(r_snr, "%d", &range);
             printf("debug: %d\n",range);
-            if (range >= 1000)
+            if (range >= 500)
             {
                 printf("email\n");
             }
