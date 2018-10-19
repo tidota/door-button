@@ -109,7 +109,7 @@ int main(void)
             // beep
             cout << "beep" << endl;
             system("notify-send -u critical \"!!! ATTENTION !!!\" \"Someone pressed the door button\"");
-            system("cvlc --play-and-exit alarm.ogg");
+            system("cvlc --play-and-exit --no-repeat alarm.ogg");
         }
         else if (strcmp("email", res) == 0)
         {
