@@ -106,8 +106,13 @@ int main(void)
 
         if (strcmp("beep", res) == 0)
         {
+            // get the time
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+            strftime(time_recorded, 32, "%F, %H:%M:%S",timeinfo);
+
             // beep
-            cout << "beep" << endl;
+            cout << "[beep] " << time_recorded << endl;
             system("notify-send -u critical \"!!! ATTENTION !!!\" \"Someone pressed the door button\"");
             system("cvlc --play-and-exit --no-repeat alarm.ogg");
         }
@@ -119,7 +124,7 @@ int main(void)
             strftime(time_recorded, 32, "%H:%M:%S",timeinfo);
 
             // output the received data
-            cout << "sending email (" << time_recorded << ")" << endl;
+            cout << "[email] (" << time_recorded << ")" << endl;
             system("echo \"Someone pressed the door button.\" | mail -s \"Door Button Notification\" tidota@hawaii.edu");
 
         }
