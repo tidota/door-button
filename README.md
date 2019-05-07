@@ -34,10 +34,16 @@ ATmega1280 (chip): PAx PBx etc
 
 
 # PC program
+Change the access control of the USB
+```
+sudo chmod 666 /dev/ttyUSB0
+```
+
 Change the baud rate
 ```
 sudo stty -F /dev/ttyUSB0 9600
 ```
+
 compile and start the program
 
 ## email setting
