@@ -114,7 +114,7 @@ int main(void)
             // beep
             cout << "[beep] " << time_recorded << endl;
             system("notify-send -u critical \"!!! ATTENTION !!!\" \"Someone pressed the door button\"");
-            system("cvlc --play-and-exit --no-repeat alarm.ogg");
+            system("cvlc --play-and-exit --no-loop alarm.ogg");
         }
         else if (strcmp("email", res) == 0)
         {
